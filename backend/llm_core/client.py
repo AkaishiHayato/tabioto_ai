@@ -4,8 +4,8 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-from prompts.classify import CLASSIFY_SYSTEM_PROMPT, CLASSIFY_USER_PROMPT
-from prompts.reply import REPLY_SYSTEM_PROMPT, REPLY_USER_PROMPT
+from llm_core.prompts.classify import CLASSIFY_SYSTEM_PROMPT, CLASSIFY_USER_PROMPT
+from llm_core.prompts.reply import REPLY_SYSTEM_PROMPT, REPLY_USER_PROMPT
 
 load_dotenv()
 

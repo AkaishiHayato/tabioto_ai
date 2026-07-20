@@ -1,8 +1,11 @@
 """データセットをLangSmithにアップロードするスクリプト。"""
 
 import json
+from pathlib import Path
 
 from langsmith import Client
+
+DATASETS_DIR = Path(__file__).parent / "datasets"
 
 
 def upload_classify_dataset():
@@ -11,7 +14,7 @@ def upload_classify_dataset():
 
     dataset = client.create_dataset(dataset_name=dataset_name)
 
-    with open("datasets/classify.json") as f:
+    with open(DATASETS_DIR / "classify.json") as f:
         examples = json.load(f)
 
     for example in examples:
@@ -29,7 +32,7 @@ def upload_reply_dataset():
 
     dataset = client.create_dataset(dataset_name=dataset_name)
 
-    with open("datasets/reply.json") as f:
+    with open(DATASETS_DIR / "reply.json") as f:
         examples = json.load(f)
 
     for example in examples:

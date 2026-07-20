@@ -1,13 +1,8 @@
 """LangSmith上でevalを実行するスクリプト。"""
 
-import sys
-import os
+from langsmith import evaluate
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from langsmith import Client, evaluate
-
-from client import classify_message, generate_reply
+from llm_core.client import classify_message, generate_reply
 
 
 def classify_target(inputs: dict) -> dict:

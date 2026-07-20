@@ -13,7 +13,8 @@
 
 ### ディレクトリ構成
 ```
-llm_core/
+backend/llm_core/
+├── client.py         # classify_message / generate_reply
 ├── prompts/          # プロンプトテンプレート
 └── eval/
     ├── datasets/     # テスト用データセット
