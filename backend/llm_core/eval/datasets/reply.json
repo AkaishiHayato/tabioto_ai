@@ -1,0 +1,32 @@
+[
+  {
+    "input": {
+      "message": "チェックインは何時からですか？",
+      "listing_info": "チェックイン: 15:00以降\nチェックアウト: 10:00まで\n住所: 東京都渋谷区xxx"
+    }
+  },
+  {
+    "input": {
+      "message": "最寄り駅からの行き方を教えてください。",
+      "listing_info": "最寄り駅: 渋谷駅 徒歩5分\n住所: 東京都渋谷区xxx\nアクセス: 渋谷駅ハチ公口を出て、スクランブル交差点を渡り直進してください。"
+    }
+  },
+  {
+    "input": {
+      "message": "Wi-Fiのパスワードを教えてください。",
+      "listing_info": "Wi-Fi: あり\nSSID: airbnb-guest\nパスワード: welcome123"
+    }
+  },
+  {
+    "input": {
+      "message": "近くにおすすめのレストランはありますか？",
+      "listing_info": "最寄り駅: 渋谷駅 徒歩5分\n住所: 東京都渋谷区xxx"
+    }
+  },
+  {
+    "input": {
+      "message": "この辺りは夜静かですか？",
+      "listing_info": "住所: 東京都渋谷区xxx\n間取り: 1LDK"
+    }
+  }
+]
