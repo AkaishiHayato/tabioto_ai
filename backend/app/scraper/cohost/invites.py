@@ -21,7 +21,7 @@ from app.scraper.browser import (
   save_storage_state,
 )
 from app.scraper.exceptions import SessionExpiredError
-from app.scraper.selectors import (
+from app.scraper.cohost.selectors import (
   COHOST_INVITE_URL_PATTERN,
   IDENTITY_VERIFICATION_PATH,
   NOTIFICATIONS_PATH,

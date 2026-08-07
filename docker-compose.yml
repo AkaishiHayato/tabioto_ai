@@ -7,6 +7,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
     volumes:
       - ./backend/app:/app/app
       - ./backend/llm_core:/app/llm_core

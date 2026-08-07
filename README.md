@@ -78,6 +78,7 @@ pnpm dev
 |---|---|
 | [backend/README.md](./backend/README.md) | BE 環境構築・API・ローカル開発 |
 | [doc/listing_editor_structure.md](./doc/listing_editor_structure.md) | リスティング編集ツール URL 構造・保存対象 |
+| [doc/listing_editor_fields.md](./doc/listing_editor_fields.md) | 各ページの取得可能フィールド一覧 |
 | [doc/architecture.md](./doc/architecture.md) | アーキテクチャ・認証・スクレイピング設計 |
 | [doc/llm_design.md](./doc/llm_design.md) | LLM 入出力・eval 方針 |
 
@@ -91,7 +92,7 @@ pnpm dev
 - [x] Airbnb 自動ログイン
 - [x] 補助ホスト招待フロー調査
 - [ ] システムアカウント本人確認（手動・たくみ作業）
-- [ ] リスティングスクレイピング
+- [x] リスティングスクレイピング
 - [ ] メッセージポーリング・自動返信
 - [ ] LINE 通知
 - [ ] 管理画面（FE）

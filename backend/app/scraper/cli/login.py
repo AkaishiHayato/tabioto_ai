@@ -11,6 +11,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+load_dotenv(Path(__file__).resolve().parents[4] / ".env")
+
 from app.scraper.auth import (
   import_session_state,
   login_automated,
@@ -84,8 +86,6 @@ async def _run(args: argparse.Namespace) -> int:
 
 
 def main() -> None:
-  root = Path(__file__).resolve().parents[3]
-  load_dotenv(root / ".env")
   parser = _build_parser()
   args = parser.parse_args()
 

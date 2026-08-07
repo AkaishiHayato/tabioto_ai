@@ -38,26 +38,48 @@ CREATE INDEX idx_airbnb_sessions_host_status ON airbnb_sessions(host_id, status)
 CREATE TYPE listing_status AS ENUM ('active', 'inactive', 'pending_scrape');
 
 CREATE TABLE listings (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  host_id             UUID NOT NULL REFERENCES hosts(id) ON DELETE CASCADE,
-  airbnb_listing_id   TEXT UNIQUE NOT NULL,    -- Airbnb 側の listing ID
-  title               TEXT,
-  address             TEXT,
-  description         TEXT,
-  check_in_time       TEXT,
-  check_out_time      TEXT,
-  amenities           JSONB DEFAULT '[]',
-  house_rules         JSONB DEFAULT '[]',
-  photos              JSONB DEFAULT '[]',
-  raw_data            JSONB,                   -- スクレイピング生データ
-  status              listing_status NOT NULL DEFAULT 'pending_scrape',
-  last_scraped_at     TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  host_id                 UUID NOT NULL REFERENCES hosts(id) ON DELETE CASCADE,
+  airbnb_listing_id       TEXT NOT NULL,           -- Airbnb 側の listing ID
+
+  -- AI 返信で頻出（トップレベルカラム）
+  title                   TEXT,                    -- 日本語タイトル
+  description             TEXT,                    -- 説明文（日本語・全セクション結合）
+  address                 TEXT,                    -- 所在地（フルアドレス）
+  max_guests              INT,                     -- 最大宿泊人数
+  check_in_time           TEXT,                    -- 例: "16:00"
+  check_out_time          TEXT,                    -- 例: "10:00"
+  amenities               JSONB NOT NULL DEFAULT '[]',   -- アメニティ名リスト
+  house_rules             JSONB NOT NULL DEFAULT '{}',   -- ペット/喫煙/静穏時間 等
+
+  -- 到着・滞在（AI 返信で頻出）
+  directions              TEXT,                    -- 道順（Maps URL 含む）
+  check_in                JSONB,                   -- {method, method_description, instructions}
+  wifi                    JSONB,                   -- {ssid, password} ※機密
+  house_manual            TEXT,
+  checkout_instructions   JSONB NOT NULL DEFAULT '[]',
+
+  -- 補完データ（多言語タイトル、物件詳細、scrape エラー等）
+  raw_data                JSONB NOT NULL DEFAULT '{}',
+
+  status                  listing_status NOT NULL DEFAULT 'pending_scrape',
+  last_scraped_at         TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  UNIQUE (host_id, airbnb_listing_id)
 );
 
 CREATE INDEX idx_listings_host ON listings(host_id);
-CREATE INDEX idx_listings_airbnb_id ON listings(airbnb_listing_id);
+CREATE INDEX idx_listings_host_status ON listings(host_id, status);
+
+COMMENT ON TABLE listings IS 'Airbnb リスティング編集ツールから scrape した情報';
+COMMENT ON COLUMN listings.amenities IS 'アメニティ名の配列。例: ["Wi-Fi", "キッチン"]';
+COMMENT ON COLUMN listings.house_rules IS 'ハウスルール object。例: {pets_allowed, quiet_hours, ...}';
+COMMENT ON COLUMN listings.check_in IS 'チェックイン方法。例: {method: "キーボックス", method_description: "..."}';
+COMMENT ON COLUMN listings.wifi IS 'Wi-Fi 情報。例: {ssid, password}';
+COMMENT ON COLUMN listings.checkout_instructions IS 'チェックアウト手順の配列';
+COMMENT ON COLUMN listings.raw_data IS '補完 JSON。titles, property_type, location, guest_safety, cancellation, instant_book, guidebooks, amenities_detail, sleeping_arrangements, check_in_end, _errors';
 
 -- ============================================================
 -- messages: 受信メッセージ

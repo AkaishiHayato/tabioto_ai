@@ -26,7 +26,7 @@ from app.scraper.exceptions import (
   SessionExpiredError,
   SessionNotFoundError,
 )
-from app.scraper.selectors import (
+from app.scraper.auth.selectors import (
   CONTINUE_BUTTONS,
   EMAIL_INPUTS,
   OTP_INPUT,

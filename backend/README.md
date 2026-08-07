@@ -12,6 +12,15 @@ backend/
 │   ├── api/routes/          # REST エンドポイント
 │   ├── db/                  # Supabase クライアント・セッション暗号化
 │   └── scraper/             # Playwright（認証・リスティング・メッセージ）
+│       ├── auth/            # ログイン・セッション
+│       ├── cohost/          # 共同ホスト招待
+│       ├── listing/         # リスティング編集ツール scrape
+│       │   ├── pages/       # details / arrival 各ページ
+│       │   ├── scrape.py    # LISTING_SCRAPERS オーケストレーション
+│       │   └── discovery.py
+│       ├── cli/             # login, inspect 等の CLI
+│       ├── browser.py
+│       └── listings.py      # DB 保存オーケストレーション
 ├── llm_core/
 │   ├── client.py            # classify_message / generate_reply
 │   ├── prompts/
@@ -55,6 +64,18 @@ Supabase Dashboard → SQL Editor で以下を実行:
 supabase/migrations/001_initial_schema.sql
 ```
 
+**`relation "hosts" already exists` と出た場合**（旧スキーマが残っている）:
+
+```
+supabase/reset_dev.sql              -- 開発環境のみ: 全テーブル削除
+supabase/migrations/001_initial_schema.sql
+```
+
+削除されるデータ: hosts、Airbnb セッション、listings、messages 等 **すべて**。  
+削除後は host シードの再投入と `app.scraper.cli.login` による再ログインが必要です。
+
+`listings` テーブル設計の詳細: [doc/listing_editor_structure.md](../doc/listing_editor_structure.md#db-保存方針)
+
 開発用シード（任意）:
 
 ```sql
@@ -79,7 +100,8 @@ docker compose logs -f backend
 docker compose down
 ```
 
-`app/` と `llm_core/` は volume mount されているため、コード変更は自動リロードされる。
+`app/` と `llm_core/` は volume mount されているため、コード変更は自動リロードされる。  
+`PYTHONDONTWRITEBYTECODE=1` を設定しているため、ホスト側に `__pycache__` は生成されない。
 
 ### 4. ローカル Python で起動（任意）
 
@@ -106,7 +128,7 @@ cd .. && uvicorn app.main:app --reload --app-dir backend
 | # | 作業 | 方法 | 備考 |
 |---|---|---|---|
 | 1 | Airbnb アカウント作成 | 手動 | システム専用メールで作成 |
-| 2 | ログイン | 自動化可 | `login_cli automated` |
+| 2 | ログイン | 自動化可 | `cli.login automated` |
 | 3 | 補助ホスト招待の承認 | 半自動 | 通知 → accept-invite →「招待を承認」 |
 | 4 | **本人確認（身分証明書 + 自撮り）** | **手動** | 「招待を承認」後に遷移 |
 
@@ -202,7 +224,7 @@ pip install -e .
 playwright install chromium
 
 # .env に AIRBNB_LOGIN_EMAIL / AIRBNB_LOGIN_PASSWORD を設定（任意・自動入力用）
-python -m app.scraper.login_cli --host-id <HOST_UUID> interactive
+python -m app.scraper.cli.login --host-id <HOST_UUID> interactive
 ```
 
 1. Chromium が起動し Airbnb ログイン画面が開く
@@ -213,13 +235,13 @@ python -m app.scraper.login_cli --host-id <HOST_UUID> interactive
 
 ```bash
 # 自動ログイン（CAPTCHA なしの場合のみ）
-python -m app.scraper.login_cli --host-id <HOST_UUID> automated
+python -m app.scraper.cli.login --host-id <HOST_UUID> automated
 
 # セッション検証
-python -m app.scraper.login_cli --host-id <HOST_UUID> validate
+python -m app.scraper.cli.login --host-id <HOST_UUID> validate
 
 # Playwright が保存した JSON をインポート
-python -m app.scraper.login_cli --host-id <HOST_UUID> import ./state.json
+python -m app.scraper.cli.login --host-id <HOST_UUID> import ./state.json
 ```
 
 ### 方法 B: API
@@ -239,6 +261,36 @@ curl -X POST http://localhost:8000/api/sessions/login \
 curl http://localhost:8000/api/sessions/validate/<HOST_UUID>
 ```
 
+### リスティング同期（FE 向け）
+
+管理画面の「リスティング同期」ボタンから呼ぶ。共同ホスト参画 → scrape → メッセージルーム取得（未実装は空）を 1 リクエストで実行。
+
+```bash
+# 招待 URL から追加（初回）
+curl -X POST http://localhost:8000/api/listings/sync/<HOST_UUID> \
+  -H "Content-Type: application/json" \
+  -d '{"invite_url":"https://www.airbnb.jp/co-hosting/accept-invite?code=XXX&listingType=STAY"}'
+
+# 承認済み + listing ID 指定（再同期）
+curl -X POST http://localhost:8000/api/listings/sync/<HOST_UUID> \
+  -H "Content-Type: application/json" \
+  -d '{"airbnb_listing_id":"1564264295874414302"}'
+```
+
+### リスティングスクレイピング（運用・一括）
+
+編集ツールの保存対象 19 ページから、タイトル・説明文・アメニティ・チェックイン情報・Wi-Fi 等を取得して DB に保存する。
+
+```bash
+# 全リスティング
+curl -X POST http://localhost:8000/api/listings/scrape/<HOST_UUID>
+
+# 単一リスティング
+curl -X POST http://localhost:8000/api/listings/scrape/<HOST_UUID>/1564264295874414302
+```
+
+取得フィールド詳細: [doc/listing_editor_fields.md](../doc/listing_editor_fields.md)
+
 ## API エンドポイント
 
 | Method | Path | 説明 |
@@ -247,7 +299,9 @@ curl http://localhost:8000/api/sessions/validate/<HOST_UUID>
 | POST | `/api/sessions/login` | Airbnb 自動ログイン |
 | POST | `/api/sessions/import` | storageState インポート |
 | GET | `/api/sessions/validate/{host_id}` | セッション有効性確認 |
-| POST | `/api/listings/scrape/{host_id}` | リスティングスクレイピング |
+| POST | `/api/listings/sync/{host_id}` | リスティング追加・同期（FE 向け） |
+| POST | `/api/listings/scrape/{host_id}` | リスティング一覧 + 詳細スクレイピング |
+| POST | `/api/listings/scrape/{host_id}/{listing_id}` | 単一リスティングの詳細スクレイピング |
 
 OpenAPI ドキュメント: [http://localhost:8000/docs](http://localhost:8000/docs)
 

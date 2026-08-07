@@ -6,7 +6,7 @@ from pathlib import Path
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 from app.config import settings
-from app.scraper.selectors import CHALLENGE_URL_FRAGMENTS, LOGIN_URL_FRAGMENTS
+from app.scraper.auth.selectors import CHALLENGE_URL_FRAGMENTS, LOGIN_URL_FRAGMENTS
 
 STEALTH_INIT_SCRIPT = (
   'Object.defineProperty(navigator, "webdriver", {get: () => undefined})'

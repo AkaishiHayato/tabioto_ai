@@ -2,6 +2,8 @@ FROM mcr.microsoft.com/playwright/python:v1.50.0-noble
 
 WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE=1
+
 COPY backend/pyproject.toml .
 COPY backend/app ./app
 COPY backend/llm_core ./llm_core

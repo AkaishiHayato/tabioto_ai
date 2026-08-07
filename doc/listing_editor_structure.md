@@ -1,7 +1,8 @@
 # リスティング編集ツール URL 構造
 
 > 更新: 2026-03-23  
-> 確認方法: システムアカウントで共同ホスト承認後、`/hosting/listings` から編集画面へ遷移
+> 確認方法: システムアカウントで共同ホスト承認後、`/hosting/listings` から編集画面へ遷移  
+> **取得フィールド詳細**: [listing_editor_fields.md](./listing_editor_fields.md)
 
 ---
 
@@ -86,60 +87,67 @@ https://www.airbnb.jp/hosting/listings/editor/{listing_id}/{section}/{page}
 
 ---
 
-## DB 保存方針（案）
+## DB 保存方針
 
-`listings` テーブル既存カラム + `raw_data` JSONB に格納想定:
+### 設計方針
 
-| DB カラム | 対応ページ |
+| レイヤー | 用途 | 例 |
+|---|---|---|
+| **トップレベルカラム** | AI 返信で頻出・検索したい | `title`, `wifi`, `directions` |
+| **raw_data JSONB** | 補完情報・多言語・scrape エラー | `titles`, `property_type`, `_errors` |
+
+詳細 DDL: `supabase/migrations/001_initial_schema.sql`
+
+### カラムマッピング
+
+| DB カラム | ソース | 型 |
+|---|---|---|
+| `airbnb_listing_id` | URL パス | TEXT |
+| `title` | `details/title` | TEXT |
+| `description` | `details/description` | TEXT |
+| `address` | `details/location` | TEXT |
+| `max_guests` | `details/number-of-guests` | INT |
+| `check_in_time` | `arrival/check-in-out` | TEXT |
+| `check_out_time` | `arrival/check-in-out` | TEXT |
+| `amenities` | `details/amenities` | JSONB 配列 |
+| `house_rules` | `details/house-rules` | JSONB object |
+| `directions` | `arrival/directions` | TEXT |
+| `check_in` | `arrival/check-in-method` | JSONB object |
+| `wifi` | `arrival/wifi-details` | JSONB object |
+| `house_manual` | `arrival/house-manual` | TEXT |
+| `checkout_instructions` | `arrival/checkout-instructions` | JSONB 配列 |
+| `raw_data` | 上記以外 | JSONB object |
+
+### raw_data のキー
+
+| キー | ソース |
 |---|---|
-| `airbnb_listing_id` | listing_id（URL から抽出） |
-| `title` | `details/title` |
-| `address` | `details/location` |
-| `description` | `details/description` |
-| `check_in_time` / `check_out_time` | `arrival/check-in-out` |
-| `amenities` | `details/amenities` |
-| `house_rules` | `details/house-rules` + `arrival/house-rules` |
-| `raw_data` | 上記以外の保存対象ページを JSON で保持 |
+| `titles` | 多言語タイトル |
+| `property_type` | 建物タイプ |
+| `descriptions` | 説明文セクション別 |
+| `amenities_detail` | アメニティ詳細 |
+| `location` | 立地特徴・エリア情報 等 |
+| `sleeping_arrangements` | 寝具配置 |
+| `guest_safety` | ゲストの安全 |
+| `accessibility` | アクセシビリティ |
+| `cancellation` | キャンセルポリシー |
+| `instant_book` | 今すぐ予約 |
+| `guidebooks` | ガイドブック |
+| `check_in_end` | チェックイン終了時刻 |
+| `_errors` | ページ別 scrape エラー |
 
 ---
 
-## スクレイピング実装メモ（未着手）
+## スクレイピング実装
 
 ```
 1. /hosting/listings から listing_id 一覧を取得
-2. 各 listing_id について SAVE_TARGETS の URL を順に開く
+2. 各 listing_id について LISTING_EDITOR_PAGES の URL を順に開く
 3. 各ページの DOM からテキストを抽出
 4. Supabase listings テーブルに upsert
 ```
 
-保存対象スラッグ一覧（コード用）:
-
-```python
-LISTING_EDITOR_PAGES = [
-  # details
-  ("details", "title"),
-  ("details", "property-type"),
-  ("details", "sleeping-arrangements"),
-  ("details", "number-of-guests"),
-  ("details", "description"),
-  ("details", "amenities"),
-  ("details", "accessibility"),
-  ("details", "location"),
-  ("details", "instant-book"),
-  ("details", "house-rules"),
-  ("details", "guest-safety"),
-  ("details", "cancellation-policy"),
-  # arrival
-  ("arrival", "check-in-out"),
-  ("arrival", "directions"),
-  ("arrival", "check-in-method"),
-  ("arrival", "wifi-details"),
-  ("arrival", "house-manual"),
-  ("arrival", "house-rules"),
-  ("arrival", "checkout-instructions"),
-  ("arrival", "guidebooks"),
-]
-```
+実装: `backend/app/scraper/listing/`（`scrape.py` の `LISTING_SCRAPERS`）
 
 ---
 
