@@ -53,6 +53,8 @@ cp .env.example .env
 | `GEMINI_API_KEY` | 後で | LLM 利用時 |
 | `LINE_GENERAL_CHANNEL_ACCESS_TOKEN` | 後で | 一般通知用公式 LINE |
 | `LINE_URGENT_CHANNEL_ACCESS_TOKEN` | 後で | 緊急通知用公式 LINE |
+| `LINE_GENERAL_CHANNEL_SECRET` | 後で | 一般通知 Webhook 署名検証 |
+| `LINE_URGENT_CHANNEL_SECRET` | 後で | 緊急通知 Webhook 署名検証 |
 
 > `SUPABASE_URL` をブラウザで開くと `{"error":"requested path is invalid"}` が返るが、API ベース URL として正常。
 
@@ -291,6 +293,63 @@ curl -X POST http://localhost:8000/api/listings/scrape/<HOST_UUID>/1564264295874
 
 取得フィールド詳細: [doc/listing_editor_fields.md](../doc/listing_editor_fields.md)
 
+### メッセージ（FE 向け）
+
+詳細: [doc/messages_scraping.md](../doc/messages_scraping.md)
+
+```bash
+# 未読ポーリング（返信要否判定 → 通常: 自動返信 / 緊急: LINE 通知）
+curl -X POST http://localhost:8000/api/messages/poll/<HOST_UUID>
+
+# FE から手動送信（補助ホストとして）
+curl -X POST http://localhost:8000/api/messages/threads/<HOST_UUID>/<THREAD_ID>/send \
+  -H "Content-Type: application/json" \
+  -d '{"text":"ご連絡ありがとうございます。"}'
+
+# 自動返信スキップ
+curl -X PATCH http://localhost:8000/api/messages/threads/<HOST_UUID>/<THREAD_ID> \
+  -H "Content-Type: application/json" \
+  -d '{"skip_auto_reply": true}'
+```
+
+**事前準備**: Supabase で `002_message_threads.sql` を適用してください。
+
+### LINE 連携
+
+詳細: [doc/architecture.md](../doc/architecture.md) §5
+
+#### 1. LINE Developers でチャネル作成（一般 / 緊急の2つ）
+
+各チャネルで以下を設定:
+
+- **Messaging API** を有効化
+- **Channel access token** を発行 → `.env` に設定
+- **Channel secret** → `.env` に設定
+- **Webhook URL**（ローカル確認時は ngrok 等で公開）:
+  - 一般: `https://<api>/api/line/webhook/general/<HOST_UUID>`
+  - 緊急: `https://<api>/api/line/webhook/urgent/<HOST_UUID>`
+- Webhook の **Use webhook** を ON
+
+#### 2. ホストが両方の公式 LINE を友だち追加
+
+`follow` イベントで `hosts.line_user_id_general` / `line_user_id_urgent` に自動保存されます。
+
+```bash
+# 連携状態確認
+curl http://localhost:8000/api/line/status/<HOST_UUID>
+
+# テスト push（token + 友だち追加済みが必要）
+curl -X POST "http://localhost:8000/api/line/test-push/urgent/<HOST_UUID>?message=テスト"
+curl -X POST "http://localhost:8000/api/line/test-push/general/<HOST_UUID>?message=テスト"
+```
+
+#### 3. 通知タイミング
+
+| チャネル | タイミング |
+|---|---|
+| 緊急 | 緊急メッセージ検知 / Airbnb セッション切れ |
+| 一般 | AI 自動返信完了後 |
+
 ## API エンドポイント
 
 | Method | Path | 説明 |
@@ -302,6 +361,9 @@ curl -X POST http://localhost:8000/api/listings/scrape/<HOST_UUID>/1564264295874
 | POST | `/api/listings/sync/{host_id}` | リスティング追加・同期（FE 向け） |
 | POST | `/api/listings/scrape/{host_id}` | リスティング一覧 + 詳細スクレイピング |
 | POST | `/api/listings/scrape/{host_id}/{listing_id}` | 単一リスティングの詳細スクレイピング |
+| GET | `/api/line/status/{host_id}` | LINE 連携状態 |
+| POST | `/api/line/webhook/{channel}/{host_id}` | LINE Webhook（`general` / `urgent`） |
+| POST | `/api/line/test-push/{channel}/{host_id}` | テスト push（開発用） |
 
 OpenAPI ドキュメント: [http://localhost:8000/docs](http://localhost:8000/docs)
 

@@ -26,6 +26,7 @@ htmlcov/
 playwright-report/
 test-results/
 **/listing_editor_inspect.json
+**/messages_inspect.json
 
 # Node / Frontend (root-level fallback)
 node_modules/

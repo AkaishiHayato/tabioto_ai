@@ -11,6 +11,7 @@ from playwright.async_api import Locator, Page
 
 from app.config import settings
 from app.db.session_store import load_session, mark_session_expired, save_session
+from app.notifications.line import notify_session_expired
 from app.scraper.browser import (
   get_browser,
   get_context,
@@ -265,7 +266,8 @@ async def validate_session(host_id: str) -> bool:
       valid = await is_hosting_accessible(page)
 
       if not valid:
-        mark_session_expired(host_id)
+        if mark_session_expired(host_id):
+          await notify_session_expired(host_id)
         return False
 
       updated_state = await save_storage_state(context)

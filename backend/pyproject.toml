@@ -16,6 +16,7 @@ dependencies = [
     "cryptography",
     "apscheduler",
     "google-genai",
+    "httpx",
 ]
 
 [project.optional-dependencies]

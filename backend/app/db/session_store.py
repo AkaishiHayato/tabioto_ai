@@ -77,9 +77,10 @@ def load_session(host_id: str) -> dict | None:
     return decrypt_state(result.data["encrypted_state"])
 
 
-def mark_session_expired(host_id: str) -> None:
-    """セッションを expired に更新する。"""
+def mark_session_expired(host_id: str) -> bool:
+    """セッションを expired に更新する。更新できた場合 True。"""
     db = get_supabase()
-    db.table("airbnb_sessions").update({
+    result = db.table("airbnb_sessions").update({
         "status": "expired",
     }).eq("host_id", host_id).eq("status", "active").execute()
+    return bool(result.data)

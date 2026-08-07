@@ -456,7 +456,7 @@ cd backend && pip install -e ".[eval]" && python -m llm_core.eval.evaluate
 - [ ] inbox スクレイピング
 - [ ] llm_core 連携
 - [ ] 自動返信送信
-- [ ] LINE 通知
+- [x] LINE 通知（Webhook + push。FE 管理画面は未）
 
 ### Step 5: 管理画面（並行）
 

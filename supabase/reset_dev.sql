@@ -8,6 +8,7 @@
 --   4. login_cli で Airbnb セッションを再保存
 
 -- トリガー
+DROP TRIGGER IF EXISTS trg_message_threads_updated_at ON message_threads;
 DROP TRIGGER IF EXISTS trg_settings_updated_at ON settings;
 DROP TRIGGER IF EXISTS trg_messages_updated_at ON messages;
 DROP TRIGGER IF EXISTS trg_listings_updated_at ON listings;
@@ -17,6 +18,7 @@ DROP TRIGGER IF EXISTS trg_hosts_updated_at ON hosts;
 -- テーブル（依存関係の子 → 親）
 DROP TABLE IF EXISTS scrape_logs CASCADE;
 DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS message_threads CASCADE;
 DROP TABLE IF EXISTS listings CASCADE;
 DROP TABLE IF EXISTS settings CASCADE;
 DROP TABLE IF EXISTS airbnb_sessions CASCADE;

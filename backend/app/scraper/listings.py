@@ -9,6 +9,7 @@ from app.config import settings
 from app.db.client import get_supabase
 from app.db.listings import listing_record_from_scrape
 from app.db.session_store import mark_session_expired, save_session
+from app.notifications.line import notify_session_expired
 from app.scraper.auth import require_valid_session
 from app.scraper.browser import (
   get_browser,
@@ -97,7 +98,8 @@ async def scrape_listings(host_id: str) -> list[dict]:
 
       summaries = await discover_listings(page)
       if is_login_url(page.url) or is_challenge_url(page.url):
-        mark_session_expired(host_id)
+        if mark_session_expired(host_id):
+          await notify_session_expired(host_id)
         raise SessionExpiredError("Airbnb セッションが切れています")
 
       if not summaries:
@@ -163,7 +165,8 @@ async def sync_listing(
 
       summaries = await discover_listings(page)
       if is_login_url(page.url) or is_challenge_url(page.url):
-        mark_session_expired(host_id)
+        if mark_session_expired(host_id):
+          await notify_session_expired(host_id)
         raise SessionExpiredError("Airbnb セッションが切れています")
 
       if not airbnb_listing_id:

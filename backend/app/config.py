@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     line_general_channel_access_token: str = ""
     line_urgent_channel_access_token: str = ""
+    line_general_channel_secret: str = ""
+    line_urgent_channel_secret: str = ""
     airbnb_base_url: str = "https://www.airbnb.com"
     airbnb_login_email: str = ""
     airbnb_login_password: str = ""
