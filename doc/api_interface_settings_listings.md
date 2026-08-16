@@ -116,7 +116,38 @@ ALTER TABLE settings
 
 ---
 
-## 3. リスティング一覧 API (`/api/listings`)
+## 3. 【重要・追加対応】settingsをAvaの返信生成に反映させる
+
+上記2章はあくまで「設定値の保存先（CRUD API）」であり、**保存しただけではAvaの返信は一切変わりません**。現在のコードを確認したところ、返信生成の入力は以下の2つだけで、`settings` テーブルの値は（既存の `early_checkin_policy` や `custom_instructions` も含めて）どこにも渡っていません。
+
+- `backend/llm_core/client.py:31` — `generate_reply(message, listing_info)` … 引数は「ゲストメッセージ」と「リスティング情報」の2つのみ
+- `backend/llm_core/prompts/reply.py` — `REPLY_USER_PROMPT` のプレースホルダーは `{message}` と `{listing_info}` のみ
+- `backend/app/services/message_poll.py` — `settings` テーブルは `get_auto_reply_enabled()` で `auto_reply_enabled` の1カラムだけ読んでおり、それ以外は未使用
+
+settings画面の項目（本ドキュメントの2章）を実際にAvaの言動に反映するには、CRUD APIとは別に、返信生成パイプラインへの配線が必要です。
+
+### 3.1 プロンプトに渡す項目（早期チェックイン/レイトチェックアウト/荷物預かり/価格交渉/自由記述）
+
+これらはすべて「ゲストへの返信文の言い回し・方針」に関わるものなので、**AI側にコンテキストとして渡すだけでよい**（Airbnb側の設定を書き換える処理は不要、というのがFE側との認識合わせ済みの前提）。
+
+想定する変更:
+
+1. `message_poll.py` の `_generate_reply()` 呼び出し前に、対象hostの `settings` 行を取得する
+2. `early_checkin_policy`, `late_checkout_policy`, `luggage_storage_enabled`/`luggage_storage_message`, `price_negotiation_policy`, `custom_instructions` から「ホストポリシー」テキストを組み立てる（例: 「アーリーチェックイン: 柔軟に対応可、荷物預かり: 案内文を使う（文面: ...）、価格交渉: 常に丁重に断る」）
+3. `generate_reply(message, listing_info, host_policy_info)` のように新しい引数を追加
+4. `REPLY_USER_PROMPT`（`backend/llm_core/prompts/reply.py`）に `{host_policy_info}` のプレースホルダーを追加し、`REPLY_SYSTEM_PROMPT` にも「ホストポリシーがある場合はリスティング情報より優先して従うこと」等のルールを追記
+
+### 3.2 応答遅延（`reply_delay_minutes`）は別種の対応
+
+これはプロンプトの内容ではなく**送信タイミングの制御**。`message_poll.py` の自動返信送信箇所（`send_thread_message` 呼び出し）を、指定分数後に送るしくみ（遅延キュー、または次回ポーリング時まで保留 等）に変更する必要がある。3.1とは独立した対応として計画してほしい。
+
+### 3.3 スコープの確認
+
+「BEとのI/F決め」はAPIのCRUDだけでなく、この配線まで含めて完了とする想定です。認識が異なる場合はFE側まで連絡ください。
+
+---
+
+## 4. リスティング一覧 API (`/api/listings`)
 
 既存の `listings.py` には `POST /sync/{host_id}`, `POST /scrape/{host_id}`, `POST /scrape/{host_id}/{listing_id}` はあるが、**一覧取得（GET）が存在しない**。FE一覧画面表示用に追加をお願いしたい。
 
@@ -150,7 +181,7 @@ ALTER TABLE settings
 
 ---
 
-## 4. FE側の対応状況
+## 5. FE側の対応状況
 
 - 上記2グループの実装が完了するまで、FE は本仕様と同じ形のモックデータ（`frontend/lib/mock-settings.ts`, `frontend/lib/mock-listings.ts`）で画面を組んでいる
 - 実装後、`frontend/lib/settings-client.ts` / `frontend/lib/listings-client.ts` 内の呼び出し先をモックから `apiFetch()` 経由の実APIに差し替えるだけで接続できる構成にしてある
