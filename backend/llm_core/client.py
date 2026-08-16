@@ -11,7 +11,7 @@ load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-flash-lite-latest"
 
 
 def classify_message(message: str) -> bool:
