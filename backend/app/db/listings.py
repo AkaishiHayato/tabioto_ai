@@ -4,6 +4,26 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.db.client import get_supabase
+
+_LIST_COLUMNS = (
+  "id, airbnb_listing_id, title, address, max_guests, "
+  "check_in_time, check_out_time, status, last_scraped_at"
+)
+
+
+def list_listings(host_id: str) -> list[dict]:
+  """FE 一覧画面向けの軽量なリスティング一覧を返す。"""
+  db = get_supabase()
+  rows = (
+    db.table("listings")
+    .select(_LIST_COLUMNS)
+    .eq("host_id", host_id)
+    .order("updated_at", desc=True)
+    .execute()
+  )
+  return rows.data or []
+
 
 _PROMOTED_RAW_KEYS = (
   "max_guests",

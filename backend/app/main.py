@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import cohost, health, line, listings, messages, sessions
+from app.api.routes import cohost, health, line, listings, messages, sessions, settings
 
 OPENAPI_TAGS = [
   {
@@ -14,7 +14,11 @@ OPENAPI_TAGS = [
   },
   {
     "name": "listings",
-    "description": "リスティングの追加・同期・スクレイピング。FE の「リスティング追加」フローは `POST /sync` を使用。",
+    "description": "リスティングの追加・同期・スクレイピング。FE の「リスティング追加」フローは `POST /sync` を使用。一覧は `GET /{host_id}`。",
+  },
+  {
+    "name": "settings",
+    "description": "Avaの返信挙動設定（自動返信有無・ポーリング間隔・チェックイン方針・荷物預かり案内・価格交渉方針 等）。FE の「Avaを設定」画面で使用。",
   },
   {
     "name": "messages",
@@ -56,6 +60,7 @@ app.add_middleware(
 app.include_router(health.router, tags=["health"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(listings.router, prefix="/api/listings", tags=["listings"])
+app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(messages.router, prefix="/api/messages", tags=["messages"])
 app.include_router(cohost.router, prefix="/api/cohost", tags=["cohost"])
 app.include_router(line.router, prefix="/api/line", tags=["line"])
