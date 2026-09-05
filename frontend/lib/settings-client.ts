@@ -1,21 +1,23 @@
-// TODO: BE実装後、apiFetch(`/api/settings/${HOST_ID}`) に差し替える。
-// 仕様: doc/api_interface_settings_listings.md
-import { mockAvaSettings } from "./mock-settings";
+// 実API接続。仕様: doc/api_interface_settings_listings.md
+import { apiFetch, HOST_ID } from "./api";
 import type { AvaSettings } from "./types";
 
-let current: AvaSettings = { ...mockAvaSettings };
-
 export async function getSettings(): Promise<AvaSettings> {
-  return current;
+  const data = await apiFetch<{ status: string; settings: AvaSettings }>(
+    `/api/settings/${HOST_ID}`,
+  );
+  return data.settings;
 }
 
 export async function updateSettings(
   patch: Partial<AvaSettings>,
 ): Promise<AvaSettings> {
-  current = {
-    ...current,
-    ...patch,
-    updated_at: new Date().toISOString(),
-  };
-  return current;
+  const data = await apiFetch<{ status: string; settings: AvaSettings }>(
+    `/api/settings/${HOST_ID}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    },
+  );
+  return data.settings;
 }
