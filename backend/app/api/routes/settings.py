@@ -57,7 +57,9 @@ async def patch_settings_for_host(host_id: str, req: SettingsUpdateRequest):
 
   **エラー**: `404` 該当ホストなし
   """
-  fields = req.model_dump(exclude_none=True)
+  # exclude_unset: 「送られなかったフィールド」と「null が明示送信されたフィールド」を
+  # 区別するため。exclude_none だと null 送信で null クリアができなくなる。
+  fields = req.model_dump(exclude_unset=True)
   if not fields:
     settings_row = get_settings(host_id)
     if not settings_row:
