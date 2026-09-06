@@ -6,7 +6,7 @@ import type {
   CheckinOutPolicy,
   PriceNegotiationPolicy,
 } from "@/lib/types";
-import { updateSettings } from "@/lib/settings-client";
+import { updateSettings } from "@/app/actions/settings";
 
 type Props = {
   initialSettings: AvaSettings;
