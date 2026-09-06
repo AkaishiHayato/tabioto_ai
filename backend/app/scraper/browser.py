@@ -4,13 +4,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright_stealth import Stealth
 
 from app.config import settings
 from app.scraper.auth.selectors import CHALLENGE_URL_FRAGMENTS, LOGIN_URL_FRAGMENTS
 
-STEALTH_INIT_SCRIPT = (
-  'Object.defineProperty(navigator, "webdriver", {get: () => undefined})'
-)
+_stealth = Stealth()
 USER_AGENT = (
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -51,7 +50,7 @@ async def get_context(browser: Browser, storage_state: dict | None = None):
       kwargs["storage_state"] = str(state_path)
 
   context = await browser.new_context(**kwargs)
-  await context.add_init_script(STEALTH_INIT_SCRIPT)
+  await _stealth.apply_stealth_async(context)
   try:
     yield context
   finally:
