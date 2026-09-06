@@ -17,8 +17,8 @@ from app.scraper.messages.parsers import (
 )
 from app.scraper.messages.selectors import (
   THREAD_HEADER_TITLE,
-  THREAD_LAST_MESSAGE,
   THREAD_LOAD_WAIT_MS,
+  THREAD_MESSAGE_ITEM,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ async def fetch_thread_last_message(
   )
   await page.wait_for_timeout(THREAD_LOAD_WAIT_MS)
 
-  raw_last = await page.locator(THREAD_LAST_MESSAGE).first.inner_text()
+  raw_last = await page.locator(THREAD_MESSAGE_ITEM).last.inner_text()
   parsed = parse_last_message_text(raw_last)
   page_text = await page.locator("body").inner_text()
   title_locator = page.locator(THREAD_HEADER_TITLE).first
