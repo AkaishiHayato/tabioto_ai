@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.deps import verify_host_path_access
 from app.db.message_threads import (
   get_thread,
   list_threads,
@@ -14,7 +15,7 @@ from app.db.messages import list_thread_messages
 from app.scraper.exceptions import ScraperError, SessionExpiredError, SessionNotFoundError
 from app.services.message_poll import poll_messages, send_message_manual
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_host_path_access)])
 
 
 class SkipAutoReplyRequest(BaseModel):

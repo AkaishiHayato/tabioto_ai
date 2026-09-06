@@ -23,6 +23,21 @@ def get_host(host_id: str) -> dict | None:
   return result.data
 
 
+def get_host_id_by_auth_user_id(auth_user_id: str) -> str | None:
+  """管理画面ログイン用 Supabase Auth ユーザーID から host_id を解決する。"""
+  db = get_supabase()
+  result = (
+    db.table("hosts")
+    .select("id")
+    .eq("auth_user_id", auth_user_id)
+    .maybe_single()
+    .execute()
+  )
+  if not result or not result.data:
+    return None
+  return result.data["id"]
+
+
 def get_line_user_id(host_id: str, channel: LineChannel) -> str | None:
   host = get_host(host_id)
   if not host:

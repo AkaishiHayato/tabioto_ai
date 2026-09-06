@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from app.api.deps import verify_host_path_access
 from app.config import settings
 from app.db.hosts import get_host
 from app.notifications.webhook import handle_webhook_events, verify_line_signature
@@ -23,7 +24,7 @@ def _channel_secret(channel: str) -> str:
   raise HTTPException(status_code=404, detail="channel must be general or urgent")
 
 
-@router.get("/status/{host_id}")
+@router.get("/status/{host_id}", dependencies=[Depends(verify_host_path_access)])
 async def line_link_status(host_id: str):
   """ホストの LINE 連携状態（User ID 登録済みか）を返す。
 
@@ -93,7 +94,7 @@ async def line_webhook(channel: str, host_id: str, request: Request):
   return {"status": "ok", **result}
 
 
-@router.post("/test-push/{channel}/{host_id}")
+@router.post("/test-push/{channel}/{host_id}", dependencies=[Depends(verify_host_path_access)])
 async def line_test_push(
   channel: str,
   host_id: str,

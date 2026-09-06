@@ -17,6 +17,7 @@ dependencies = [
     "apscheduler",
     "google-genai",
     "httpx",
+    "pyjwt[crypto]",
 ]
 
 [project.optional-dependencies]
