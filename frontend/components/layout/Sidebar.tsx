@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/app/actions/auth";
 
 const NAV_ITEMS = [
   { href: "/ava", label: "Avaを設定" },
@@ -37,6 +38,14 @@ export function Sidebar() {
           </Link>
         );
       })}
+      <form action={logout} className="mt-auto pt-2">
+        <button
+          type="submit"
+          className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+        >
+          ログアウト
+        </button>
+      </form>
     </nav>
   );
 }

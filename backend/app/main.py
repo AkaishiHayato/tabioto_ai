@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import cohost, health, line, listings, messages, sessions, settings
+from app.api.routes import cohost, health, line, listings, me, messages, sessions, settings
 
 OPENAPI_TAGS = [
   {
     "name": "health",
     "description": "サーバー稼働確認。",
+  },
+  {
+    "name": "me",
+    "description": "ログイン中ホストの情報取得。FEはログイン後にこれを呼んで自分のhost_idを知る。",
   },
   {
     "name": "sessions",
@@ -41,7 +45,7 @@ app = FastAPI(
     "Airbnb 共同ホスト向け自動返信システムのバックエンド API。\n\n"
     "**FE 開発者向けメモ**\n"
     "- ベース URL: `http://localhost:8000`（ローカル）\n"
-    "- 認証: 現時点では未実装（MVP は単一ホスト）\n"
+    "- 認証: Supabase Auth の JWT を `Authorization: Bearer` で送信（`GET /api/me` で host_id を解決）\n"
     "- `host_id`: Supabase `hosts.id`（UUID）\n"
     "- セッション切れ時: `401` + `detail` に再ログイン案内\n"
     "- OpenAPI JSON: `/openapi.json` / Swagger UI: `/docs`"
@@ -58,6 +62,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, tags=["health"])
+app.include_router(me.router, prefix="/api", tags=["me"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(listings.router, prefix="/api/listings", tags=["listings"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.deps import get_current_host_id, verify_host_path_access
 from app.scraper.auth import (
   import_session_state,
   login_automated,
@@ -15,6 +16,12 @@ from app.scraper.exceptions import (
 )
 
 router = APIRouter()
+
+
+def _verify_body_host_id(req_host_id: str, authenticated_host_id: str) -> None:
+  """リクエストボディの host_id が認証済みユーザーのものと一致するか検証する。"""
+  if req_host_id != authenticated_host_id:
+    raise HTTPException(status_code=403, detail="アクセス権がありません")
 
 
 class LoginRequest(BaseModel):
@@ -36,7 +43,10 @@ class ImportSessionRequest(BaseModel):
 
 
 @router.post("/login")
-async def airbnb_login_automated(req: LoginRequest):
+async def airbnb_login_automated(
+  req: LoginRequest,
+  authenticated_host_id: str = Depends(get_current_host_id),
+):
   """Airbnb にメール・パスワードで自動ログインし、storageState を DB に保存する。
 
   **用途**: 初回セットアップ、セッション切れ後の再ログイン。
@@ -45,8 +55,10 @@ async def airbnb_login_automated(req: LoginRequest):
 
   **エラー**:
   - `401`: ログイン失敗
+  - `403`: リクエストの host_id が認証済みユーザーと一致しない
   - `428`: CAPTCHA 等で自動ログイン不可 → `/login/interactive` または CLI を使用
   """
+  _verify_body_host_id(req.host_id, authenticated_host_id)
   try:
     result = await login_automated(req.host_id, req.email, req.password)
     return {"status": "ok", **result.__dict__}
@@ -60,7 +72,10 @@ async def airbnb_login_automated(req: LoginRequest):
 
 
 @router.post("/login/interactive")
-async def airbnb_login_interactive(req: InteractiveLoginRequest):
+async def airbnb_login_interactive(
+  req: InteractiveLoginRequest,
+  authenticated_host_id: str = Depends(get_current_host_id),
+):
   """ブラウザを起動して Airbnb ログインし、storageState を DB に保存する。
 
   **用途**: 自動ログインが `428` で失敗した場合の代替手段。
@@ -69,6 +84,7 @@ async def airbnb_login_interactive(req: InteractiveLoginRequest):
 
   **成功時**: `{"status": "ok", "success": true, "method": "interactive", ...}`
   """
+  _verify_body_host_id(req.host_id, authenticated_host_id)
   try:
     result = await login_interactive(
       req.host_id,
@@ -83,7 +99,10 @@ async def airbnb_login_interactive(req: InteractiveLoginRequest):
 
 
 @router.post("/import")
-async def import_session(req: ImportSessionRequest):
+async def import_session(
+  req: ImportSessionRequest,
+  authenticated_host_id: str = Depends(get_current_host_id),
+):
   """CLI で取得した Playwright storageState JSON を DB にインポートする。
 
   **用途**: ローカル CLI（`python -m app.scraper.cli.login`）でログイン後、
@@ -93,7 +112,9 @@ async def import_session(req: ImportSessionRequest):
 
   **エラー**:
   - `401`: インポートした storageState が無効
+  - `403`: リクエストの host_id が認証済みユーザーと一致しない
   """
+  _verify_body_host_id(req.host_id, authenticated_host_id)
   try:
     result = await import_session_state(req.host_id, req.storage_state)
     return {"status": "ok", **result.__dict__}
@@ -101,7 +122,7 @@ async def import_session(req: ImportSessionRequest):
     raise HTTPException(status_code=401, detail=str(e))
 
 
-@router.get("/validate/{host_id}")
+@router.get("/validate/{host_id}", dependencies=[Depends(verify_host_path_access)])
 async def check_session(host_id: str):
   """保存済み Airbnb セッションが有効かどうかを確認する。
 

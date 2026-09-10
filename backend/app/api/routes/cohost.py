@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 
+from app.api.deps import verify_host_path_access
 from app.scraper.cohost import accept_invite_by_url, accept_invites_from_notifications
 from app.scraper.exceptions import ScraperError, SessionExpiredError, SessionNotFoundError
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_host_path_access)])
 
 
 class AcceptInviteRequest(BaseModel):

@@ -1,11 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
+from app.api.deps import verify_host_path_access
 from app.db.listings import list_listings
 from app.scraper.exceptions import ScraperError, SessionExpiredError, SessionNotFoundError
 from app.scraper.listings import scrape_listing_detail, scrape_listings, sync_listing
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_host_path_access)])
 
 
 @router.get("/{host_id}")
