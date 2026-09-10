@@ -3,6 +3,7 @@
 from app.scraper.auth.login import (
   LoginResult,
   import_session_state,
+  import_session_via_cdp,
   login_and_save_session,
   login_automated,
   login_interactive,
@@ -15,6 +16,7 @@ from app.scraper.auth.login import (
 __all__ = [
   "LoginResult",
   "import_session_state",
+  "import_session_via_cdp",
   "login_and_save_session",
   "login_automated",
   "login_interactive",

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.deps import verify_host_path_access
 from app.db.settings import get_settings, update_settings
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_host_path_access)])
 
 CheckinOutPolicy = Literal["flexible", "strict"]
 PriceNegotiationPolicy = Literal["decline", "defer_to_host"]
