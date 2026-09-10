@@ -4,7 +4,10 @@ INBOX_UNREAD_PATH = "/hosting/messages?unread="
 THREAD_PATH = "/hosting/messages/{thread_id}"
 
 INBOX_LIST_ITEM = '[data-testid^="inbox_list_"]'
-THREAD_LAST_MESSAGE = '[data-testid="thread_page_last_item"]'
+# 2026-09 時点: thread_page_last_item は廃止され、メッセージ一覧内の
+# 各アイテムが MessageOuterRegistryWrapperSpacingProps になった。
+# 最新メッセージは .last で取得する。
+THREAD_MESSAGE_ITEM = '[data-testid="MessageOuterRegistryWrapperSpacingProps"]'
 THREAD_HEADER_TITLE = '[data-testid="thread-header-title"]'
 COMPOSE_BAR = '[data-testid="messaging-composebar"]'
 SEND_BUTTON = '[data-testid="messaging_compose_bar_send_button"]'

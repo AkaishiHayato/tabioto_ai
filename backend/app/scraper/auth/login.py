@@ -254,6 +254,41 @@ async def import_session_state(host_id: str, state: dict) -> LoginResult:
       )
 
 
+async def import_session_via_cdp(
+  host_id: str, cdp_url: str = "http://localhost:9222"
+) -> LoginResult:
+  """既にログイン済みの Chrome（--remote-debugging-port 起動）に接続し、
+  そのセッションの storageState を取り込む。
+
+  ログインフォームの送信を一切自動化しないため、Airbnb 側の自動操作検知
+  （ログインが即座に差し戻される事象）を回避できる。ログイン自体は人間が
+  普段通りの Chrome で行い、Playwright はログイン後の状態を読み取るだけ。
+  """
+  from playwright.async_api import async_playwright
+
+  async with async_playwright() as p:
+    browser = await p.chromium.connect_over_cdp(cdp_url)
+    if not browser.contexts:
+      raise LoginError(f"{cdp_url} に接続しましたが、アクティブなブラウザセッションが見つかりません")
+
+    context = browser.contexts[0]
+    page = context.pages[0] if context.pages else await context.new_page()
+
+    if not await is_hosting_accessible(page):
+      raise LoginError(
+        "接続先のブラウザで Airbnb にログインし、"
+        "/hosting/listings にアクセスできる状態にしてください"
+      )
+
+    updated = await save_storage_state(context)
+    save_session(host_id, updated)
+    return LoginResult(
+      success=True,
+      method="cdp_import",
+      message="接続中のブラウザから Airbnb セッションを取り込みました",
+    )
+
+
 async def validate_session(host_id: str) -> bool:
   """保存済みセッションが有効かどうかを確認する。"""
   state = load_session(host_id)

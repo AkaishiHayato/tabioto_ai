@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import re
 
@@ -15,9 +16,26 @@ THREAD_ID_RE = re.compile(r"/hosting/messages/(\d+)")
 
 
 def thread_id_from_graphql(gid: str) -> str:
-  if ":" in gid:
-    return gid.split(":", 1)[1]
-  return gid
+  """GraphQL global ID（Base64エンコードされた"MessageThread:12345"形式）から
+  数値の thread_id を取り出す。
+
+  例: "TWVzc2FnZVRocmVhZDoyNjIzNDcyMzI4" → base64復号 → "MessageThread:2623472328" → "2623472328"
+  """
+  if not gid:
+    return gid
+
+  candidate = gid
+  try:
+    padded = gid + "=" * (-len(gid) % 4)
+    decoded = base64.b64decode(padded).decode("utf-8")
+    if ":" in decoded:
+      candidate = decoded
+  except Exception:
+    pass
+
+  if ":" in candidate:
+    return candidate.split(":", 1)[1]
+  return candidate
 
 
 def thread_id_from_url(url: str) -> str | None:
@@ -64,7 +82,7 @@ def parse_sender_role(header_line: str) -> tuple[str | None, str]:
 
 def parse_last_message_text(raw_text: str) -> dict[str, str | None]:
   """
-  thread_page_last_item の innerText をパースする。
+  THREAD_MESSAGE_ITEM（最新メッセージ）の innerText をパースする。
 
   形式例:
     Takumi · ホスト\\n23:37\\n本文\\n既読...

@@ -15,6 +15,7 @@ load_dotenv(Path(__file__).resolve().parents[4] / ".env")
 
 from app.scraper.auth import (
   import_session_state,
+  import_session_via_cdp,
   login_automated,
   login_interactive,
   validate_session,
@@ -42,6 +43,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
   import_cmd = sub.add_parser("import", help="storageState JSON をインポート")
   import_cmd.add_argument("file", type=Path, help="Playwright storageState JSON パス")
+
+  cdp_cmd = sub.add_parser(
+    "connect",
+    help=(
+      "既にログイン済みの Chrome (--remote-debugging-port 起動) に接続し、"
+      "セッションを取り込む（bot 検知回避用）"
+    ),
+  )
+  cdp_cmd.add_argument(
+    "--cdp-url", default="http://localhost:9222", help="接続先の CDP URL"
+  )
 
   return parser
 
@@ -79,6 +91,11 @@ async def _run(args: argparse.Namespace) -> int:
   if args.command == "import":
     state = json.loads(args.file.read_text())
     result = await import_session_state(args.host_id, state)
+    print(result.message)
+    return 0
+
+  if args.command == "connect":
+    result = await import_session_via_cdp(args.host_id, cdp_url=args.cdp_url)
     print(result.message)
     return 0
 
