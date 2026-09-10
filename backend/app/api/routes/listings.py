@@ -1,10 +1,23 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
+from app.db.listings import list_listings
 from app.scraper.exceptions import ScraperError, SessionExpiredError, SessionNotFoundError
 from app.scraper.listings import scrape_listing_detail, scrape_listings, sync_listing
 
 router = APIRouter()
+
+
+@router.get("/{host_id}")
+async def get_listings_for_host(host_id: str):
+  """ホストに紐づくリスティング一覧を返す（一覧表示用の軽量フィールドのみ）。
+
+  **用途**: FE リスティング一覧画面。
+
+  **レスポンス**: `{"status": "ok", "listings": [...]}`
+  （該当なしの場合も `200` + 空配列）
+  """
+  return {"status": "ok", "listings": list_listings(host_id)}
 
 
 class SyncListingRequest(BaseModel):

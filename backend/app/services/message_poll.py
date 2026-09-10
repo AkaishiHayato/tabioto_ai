@@ -8,13 +8,13 @@ from typing import Any
 
 from app.db.listings import build_listing_info
 from app.db.message_threads import (
-  get_auto_reply_enabled,
   get_monitored_listing_ids,
   get_thread,
   resolve_listing_uuid,
   upsert_thread,
 )
 from app.db.messages import insert_message, update_message_status
+from app.db.settings import build_host_policy_info, get_settings
 from app.db.client import get_supabase
 from app.db.session_store import mark_session_expired, save_session
 from app.notifications.line import notify_auto_reply, notify_session_expired, notify_urgent_message
@@ -51,18 +51,20 @@ def _classify_urgency(message: str) -> bool:
   return classify_message(message)
 
 
-def _generate_reply(message: str, listing_record: dict) -> str:
+def _generate_reply(message: str, listing_record: dict, host_policy_info: str) -> str:
   from llm_core.client import generate_reply
 
   listing_info = build_listing_info(listing_record)
-  return generate_reply(message, listing_info)
+  return generate_reply(message, listing_info, host_policy_info)
 
 
 async def poll_messages(host_id: str) -> dict[str, Any]:
   """未読スレッドを巡回し、返信要否判定 → 自動返信 or LINE 通知。"""
   state = await require_valid_session(host_id)
   monitored_ids = get_monitored_listing_ids(host_id)
-  auto_reply_enabled = get_auto_reply_enabled(host_id)
+  settings_row = get_settings(host_id)
+  auto_reply_enabled = bool(settings_row.get("auto_reply_enabled", True)) if settings_row else True
+  host_policy_info = build_host_policy_info(settings_row)
   results: list[dict[str, Any]] = []
 
   async with get_browser(headless=True) as browser:
@@ -195,7 +197,7 @@ async def poll_messages(host_id: str) -> dict[str, Any]:
             item["action"] = "skip"
             item["reason"] = "リスティング情報なし"
           else:
-            reply_text = _generate_reply(detail.body, listing_record)
+            reply_text = _generate_reply(detail.body, listing_record, host_policy_info)
             await send_thread_message(page, summary.airbnb_thread_id, reply_text)
             update_message_status(
               message_row["id"],
